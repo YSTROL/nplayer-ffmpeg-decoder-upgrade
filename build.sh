@@ -21,6 +21,12 @@ curl -sL "https://ffmpeg.org/releases/ffmpeg-$FF_VER.tar.xz" -o ffmpeg.tar.xz
 tar xf ffmpeg.tar.xz
 FF_SRC=$(ls -d ffmpeg-$FF_VER)
 
+# nPlayer 加载外部解码器时会通过 dlsym 取 av_version_info() 的返回串校验版本，
+# 只接受内置版的 "4.2.1"，报新版本会被判定"已更新、不兼容"而拒绝加载。
+# 这里仅改上报的版本串（VERSION 文件 -> FFMPEG_VERSION），不改变实际代码与 ABI：
+# 4.4.4 与 4.2.1 同属 Lavf58 主版本，ABI 兼容。
+echo "4.2.1" > "$FF_SRC/VERSION"
+
 # ---------- 可选：编译 dav1d (AV1) ----------
 DAV1D_STATIC=""
 if [ "$WITH_DAV1D" = "true" ]; then
