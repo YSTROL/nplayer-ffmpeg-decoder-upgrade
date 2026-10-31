@@ -47,10 +47,10 @@ cpu_family = 'aarch64'
 cpu = 'armv8-a'
 endian = 'little'
 EOF
-  # dav1d 需要 android 库路径
+  # dav1d 需要 android 库路径；静态库必须以 PIC 方式编译
   if meson setup dav1d-build dav1d --cross-file cross.txt \
       -Dprefix="$PREFIX" -Dbuildtests=false -Dtests=false \
-      -Ddefault_library=static --libdir=lib 2>&1 | tail -3; then
+      -Ddefault_library=static -Db_staticpic=true --libdir=lib 2>&1 | tail -3; then
     ninja -C dav1d-build install >/dev/null 2>&1 && {
       DAV1D_CFLAGS="-I$PREFIX/include"
       DAV1D_LDFLAGS="$PREFIX/lib/libdav1d.a -llog"
@@ -74,7 +74,8 @@ LIB_FLAGS="--enable-static --disable-shared --disable-programs --disable-doc \
   --enable-protocols --enable-demuxers --enable-muxers --enable-decoders \
   --enable-encoders --enable-filters --enable-parsers --enable-bsfs \
   --enable-indevs --enable-outdevs \
-  --extra-cflags=-O3"
+  --extra-cflags='-fPIC -O3' --extra-cxxflags='-fPIC -O3' \
+  --extra-ldflags='-fPIC -lm -llog'"
 
 if [ -n "$DAV1D_LDFLAGS" ]; then
   LIB_FLAGS="$LIB_FLAGS --enable-libdav1d \
@@ -104,7 +105,7 @@ cat > merge.c <<'EOF'
 // 防止链接器丢弃静态库：强制保留全部目标文件
 void __ffmpeg_merge_marker(void) {}
 EOF
-$CC -shared -o libffmpeg.so merge.c \
+$CC -fPIC -shared -o libffmpeg.so merge.c \
   -Wl,--whole-archive \
     "$PREFIX/lib/libavdevice.a" \
     "$PREFIX/lib/libavfilter.a" \
