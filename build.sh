@@ -80,8 +80,6 @@ FF_ARGS=(
   --enable-indevs --enable-outdevs
   --extra-cflags=-fPIC
   --extra-cflags=-O3
-  --extra-ldflags=-fPIC
-  --extra-ldflags=-llog
   --extra-libs=-lm
 )
 if [ -n "$DAV1D_STATIC" ]; then
@@ -94,7 +92,11 @@ if [ -n "$DAV1D_STATIC" ]; then
 fi
 
 cd "$FF_SRC"
-PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig" ./configure "${FF_ARGS[@]}"
+if ! PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig" ./configure "${FF_ARGS[@]}"; then
+  echo "===== configure 失败，config.log 末尾 ====="
+  tail -60 ffbuild/config.log
+  exit 1
+fi
 make -j"$(nproc)" >/dev/null
 make install >/dev/null
 cd ..
