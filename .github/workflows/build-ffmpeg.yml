@@ -1,0 +1,58 @@
+name: Build FFmpeg for nPlayer
+
+on:
+  workflow_dispatch:
+    inputs:
+      ffmpeg_version:
+        description: 'FFmpeg 版本（4.x 主版本与内置 4.2 ABI 兼容）'
+        required: false
+        default: '4.4.4'
+      with_dav1d:
+        description: '是否编译 AV1 解码器 dav1d'
+        required: false
+        default: 'true'
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm yasm pkg-config meson ninja-build
+
+      - name: Set up Android NDK
+        id: ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+          add-to-path: false
+
+      - name: Build
+        env:
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+          FF_VER: ${{ github.event.inputs.ffmpeg_version || '4.4.4' }}
+          WITH_DAV1D: ${{ github.event.inputs.with_dav1d || 'true' }}
+        run: bash build.sh
+
+      - name: Verify symbols required by nplayer core
+        run: |
+          echo "== 检查 nplayer 核心引用的关键符号 =="
+          for sym in av_init_packet avformat_open_input avcodec_send_packet avcodec_receive_frame sws_scale avcodec_parameters_copy av_write_trailer avformat_new_stream; do
+            if llvm-nm -D --defined-only libffmpeg.so | grep -qw "$sym"; then
+              echo "  OK   $sym"
+            else
+              echo "  MISS $sym"
+            fi
+          done
+          echo "== so 大小 =="
+          ls -lh libffmpeg.so
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libffmpeg-arm64
+          path: libffmpeg.so
