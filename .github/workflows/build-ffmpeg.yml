@@ -42,7 +42,7 @@ jobs:
         run: |
           echo "== 检查 nplayer 核心引用的关键符号 =="
           for sym in av_init_packet avformat_open_input avcodec_send_packet avcodec_receive_frame sws_scale avcodec_parameters_copy av_write_trailer avformat_new_stream; do
-            if llvm-nm -D --defined-only libffmpeg.so | grep -qw "$sym"; then
+            if "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm" -D --defined-only libffmpeg.so | grep -qw "$sym"; then
               echo "  OK   $sym"
             else
               echo "  MISS $sym"
