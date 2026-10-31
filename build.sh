@@ -45,7 +45,7 @@ EOF
       -Dprefix="$PREFIX" \
       -Ddefault_library=static \
       -Db_staticpic=true \
-      -Dtests=false -Dtools=false \
+      -Denable_tests=false -Denable_tools=false \
       --libdir=lib; then
     ninja -C build-dav1d install
     if [ -f "$PREFIX/lib/libdav1d.a" ]; then
@@ -103,6 +103,18 @@ echo "===== 4/4 合并为单一 libffmpeg.so ====="
 cat > merge.c <<'EOF'
 void __ffmpeg_merge_marker(void) {}
 EOF
+# 版本脚本：只导出公共 API，内部符号（ff_* / dav1d_* 等）标为 local
+# 否则汇编里的绝对重定位会因符号可抢占而链接失败
+cat > libffmpeg.ver <<'EOF'
+{
+  global:
+    av*;
+    sws_*;
+    swr_*;
+  local:
+    *;
+};
+EOF
 MERGE_ARGS=(
   -fPIC -shared -o libffmpeg.so merge.c
   -Wl,--whole-archive
@@ -114,6 +126,8 @@ MERGE_ARGS=(
     "$PREFIX/lib/libswscale.a"
     "$PREFIX/lib/libavutil.a"
   -Wl,--no-whole-archive
+  -Wl,--version-script="$PWD/libffmpeg.ver"
+  -Wl,-Bsymbolic
   -lm -llog -lz -landroid
   -Wl,-soname,libffmpeg.so
   -O3
