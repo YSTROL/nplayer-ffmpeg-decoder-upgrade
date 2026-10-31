@@ -87,7 +87,6 @@ if [ -n "$DAV1D_STATIC" ]; then
     --enable-libdav1d
     --extra-cflags=-I"$PREFIX/include"
     --extra-ldflags="$DAV1D_STATIC"
-    --extra-libs=-lpthread
   )
 fi
 
